@@ -108,4 +108,15 @@ def termination_criteria(termination_args, method="iter"):
             f_terminate = True
 
         terminate = e_terminate and f_terminate
+        
+    if method == "model_change":
+        energies = copy.copy(termination_args["model_energy_predictions"])
+        min_iter = termination_args["min_iter"]
+        energy_tol = termination_args["energy_tol"]
+        if len(energies) < min_iter:
+            return False
+        energy_range = np.ptp(np.array(energies[-min_iter:]))
+        if energy_range < energy_tol:
+            terminate = True
+    
     return terminate

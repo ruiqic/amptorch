@@ -65,6 +65,9 @@ class AtomisticActiveLearner:
         self.ensemble = ensemble
         self.parent_calls = 0
         self.iteration = 0
+        
+        if training_params["al_convergence"]["method"] == "model_change":
+            self.model_energy_predictions = []
 
         if ensemble:
             assert isinstance(ensemble, int) and ensemble > 1, "Invalid ensemble!"
@@ -127,6 +130,16 @@ class AtomisticActiveLearner:
                 }
                 self.parent_calls += 1
 
+            elif method == "model_change":
+                latest_traj = ase.io.read("%s.traj"%fn_label, ":")
+                latest_energy = latest_traj[-1].get_potential_energy()
+                self.model_energy_predictions.append(latest_energy)
+                termination_args = {
+                    "model_energy_predictions": self.model_energy_predictions,
+                    "min_iter": al_convergence["min_iter"],
+                    "energy_tol": al_convergence["energy_tol"] 
+                }
+                
             terminate = termination_criteria(
                 method=method, termination_args=termination_args
             )
