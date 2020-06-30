@@ -6,7 +6,7 @@ import torch
 
 from skorch import NeuralNetRegressor
 from skorch.dataset import CVSplit
-from skorch.callbacks import Checkpoint, EpochScoring
+from skorch.callbacks import Checkpoint, EpochScoring, LRScheduler, WarmRestartLR
 
 from amptorch.gaussian import SNN_Gaussian
 from amptorch.skorch_model import AMP
@@ -15,6 +15,7 @@ from amptorch.skorch_model.utils import (
     energy_score,
     forces_score,
     train_end_load_best_loss,
+    write_lr_to_history,
 )
 from amptorch.delta_models.morse import morse_potential
 from amptorch.data_preprocess import AtomsDataset, collate_amp
@@ -69,6 +70,7 @@ def model_trainer(images, training_params):
     shuffle = training_params["shuffle"]
     filename = training_params["filename"]
     verbose = training_params["verbose"]
+    scheduler = training_params["scheduler"]
 
     os.makedirs("./results/checkpoints", exist_ok=True)
 
@@ -122,7 +124,12 @@ def model_trainer(images, training_params):
                 monitor="forces_score_best",
                 fn_prefix="./results/checkpoints/{}_".format(filename),
             ),
+            LRScheduler(
+                policy=scheduler["policy"],
+                T_max=300,
+            ),
             load_best_valid_loss,
+            write_lr_to_history(),
         ]
     else:
         force_coefficient = 0

@@ -60,6 +60,15 @@ class train_end_load_best_loss(skorch.callbacks.base.Callback):
 
     def on_train_end(self, net, X, y):
         net.load_params("./results/checkpoints/{}_params.pt".format(self.filename))
+        
+class write_lr_to_history(skorch.callbacks.base.Callback):
+    def __init__(self):
+        super().__init__()
+        
+    def on_epoch_begin(self, net, dataset_train, dataset_valid):
+        history = net.history
+        lr = net.callbacks[3].lr_scheduler_.get_lr()[0]
+        history.record("learning_rate", lr)
 
 def make_force_header(log):
     header = "%5s %12s %12s %12s %7s"
