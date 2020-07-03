@@ -105,7 +105,7 @@ def model_trainer(images, training_params):
         train_split = CVSplit(cv=train_split)
         on_train = False
 
-    if forcetraining:
+    if forcetraining and scheduler is not None:
         force_coefficient = force_coefficient
         callbacks = [
             EpochScoring(
@@ -125,11 +125,31 @@ def model_trainer(images, training_params):
                 fn_prefix="./results/checkpoints/{}_".format(filename),
             ),
             LRScheduler(
-                policy=scheduler["policy"],
-                T_max=300,
+                **scheduler,
             ),
             load_best_valid_loss,
             write_lr_to_history(),
+        ]
+    elif forcetraining:
+        force_coefficient = force_coefficient
+        callbacks = [
+            EpochScoring(
+                forces_score,
+                on_train=on_train,
+                use_caching=True,
+                target_extractor=target_extractor,
+            ),
+            EpochScoring(
+                energy_score,
+                on_train=on_train,
+                use_caching=True,
+                target_extractor=target_extractor,
+            ),
+            Checkpoint(
+                monitor="forces_score_best",
+                fn_prefix="./results/checkpoints/{}_".format(filename),
+            ),
+            load_best_valid_loss,
         ]
     else:
         force_coefficient = 0
