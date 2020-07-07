@@ -6,7 +6,7 @@ import torch
 
 from skorch import NeuralNetRegressor
 from skorch.dataset import CVSplit
-from skorch.callbacks import Checkpoint, EpochScoring, LRScheduler, WarmRestartLR
+from skorch.callbacks import Checkpoint, EpochScoring, LRScheduler, WarmRestartLR, WandbLogger
 
 from amptorch.gaussian import SNN_Gaussian
 from amptorch.skorch_model import AMP
@@ -71,6 +71,8 @@ def model_trainer(images, training_params):
     filename = training_params["filename"]
     verbose = training_params["verbose"]
     scheduler = training_params["scheduler"]
+    wandb_logger = training_params["wandb_logger"]
+    save_lr = training_params["save_lr"]
 
     os.makedirs("./results/checkpoints", exist_ok=True)
 
@@ -105,9 +107,20 @@ def model_trainer(images, training_params):
         train_split = CVSplit(cv=train_split)
         on_train = False
 
-    if forcetraining and scheduler is not None:
-        force_coefficient = force_coefficient
-        callbacks = [
+    # set force coefficient
+    if not forcetraining:
+        force_coefficient = 0
+    
+    # set callbacks
+    callbacks = []
+    
+    if scheduler is not None:
+        callbacks.append(LRScheduler(**scheduler))
+    if save_lr:
+        callbacks.append(write_lr_to_history())
+        
+    if forcetraining:
+        callbacks += [
             EpochScoring(
                 forces_score,
                 on_train=on_train,
@@ -124,36 +137,10 @@ def model_trainer(images, training_params):
                 monitor="forces_score_best",
                 fn_prefix="./results/checkpoints/{}_".format(filename),
             ),
-            LRScheduler(
-                **scheduler,
-            ),
-            load_best_valid_loss,
-            write_lr_to_history(),
-        ]
-    elif forcetraining:
-        force_coefficient = force_coefficient
-        callbacks = [
-            EpochScoring(
-                forces_score,
-                on_train=on_train,
-                use_caching=True,
-                target_extractor=target_extractor,
-            ),
-            EpochScoring(
-                energy_score,
-                on_train=on_train,
-                use_caching=True,
-                target_extractor=target_extractor,
-            ),
-            Checkpoint(
-                monitor="forces_score_best",
-                fn_prefix="./results/checkpoints/{}_".format(filename),
-            ),
-            load_best_valid_loss,
+            load_best_valid_loss
         ]
     else:
-        force_coefficient = 0
-        callbacks = [
+        callbacks += [
             EpochScoring(
                 energy_score,
                 on_train=on_train,
@@ -164,8 +151,12 @@ def model_trainer(images, training_params):
                 monitor="energy_score_best",
                 fn_prefix="./results/checkpoints/{}_".format(filename),
             ),
-            load_best_valid_loss,
+            load_best_valid_loss
         ]
+    
+    if wandb_logger is not None:
+        callbacks.append(WandbLogger(**wandb_logger))
+        
 
     net = NeuralNetRegressor(
         module=BPNN(

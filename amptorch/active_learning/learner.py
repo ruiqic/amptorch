@@ -141,7 +141,9 @@ class AtomisticActiveLearner:
                 termination_args = {
                     "model_energy_predictions": self.model_energy_predictions,
                     "min_iter": al_convergence["min_iter"],
-                    "energy_tol": al_convergence["energy_tol"] 
+                    "energy_tol": al_convergence["energy_tol"],
+                    "max_iter": al_convergence["max_iter"],
+                    "current_iter": self.iteration
                 }
                 
             terminate = termination_criteria(

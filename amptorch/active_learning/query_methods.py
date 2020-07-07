@@ -127,6 +127,10 @@ def termination_criteria(termination_args, method="iter"):
         energies = copy.copy(termination_args["model_energy_predictions"])
         min_iter = termination_args["min_iter"]
         energy_tol = termination_args["energy_tol"]
+        max_iter = termination_args["max_iter"]
+        current_iter = termination_args["current_iter"]
+        if current_iter > max_iter:
+            return True
         if len(energies) < min_iter:
             return False
         energy_range = np.ptp(np.array(energies[-min_iter:]))
