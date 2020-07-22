@@ -70,6 +70,8 @@ class AtomisticActiveLearner:
         
         if training_params["al_convergence"]["method"] == "model_change":
             self.model_energy_predictions = []
+        elif training_params["al_convergence"]["method"] == "dft_force":
+            self.dft_max_forces = []
 
         if ensemble:
             assert isinstance(ensemble, int) and ensemble > 1, "Invalid ensemble!"
@@ -144,6 +146,21 @@ class AtomisticActiveLearner:
                     "energy_tol": al_convergence["energy_tol"],
                     "max_iter": al_convergence["max_iter"],
                     "current_iter": self.iteration
+                }
+                
+            elif method == "dft_force":
+                # when using "random_and_last" query strategy
+                # the last image in the previous relaxation is the last image in training data
+                if self.iteration > 1:
+                    last_image = self.training_data[-1]
+                    last_image_forces = last_image.get_forces()
+                    last_fmax = np.amax(np.absolute(last_image_forces))
+                    self.dft_max_forces.append(last_fmax)
+                termination_args = {
+                    "dft_max_forces": self.dft_max_forces,
+                    "current_iter": self.iteration,
+                    "force_cutoff": al_convergence["force_cutoff"],
+                    "max_iter": al_convergence["max_iter"]
                 }
                 
             terminate = termination_criteria(

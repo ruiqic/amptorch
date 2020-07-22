@@ -50,6 +50,24 @@ def random_query(_, sample_candidates, samples_to_retrain, parent_calc,
     queried_images = compute_query(images_to_query, parent_calc)
     return queried_images
 
+def random_and_last(_, sample_candidates, samples_to_retrain, parent_calc,
+                    params=None, method=None):
+    """
+    Randomly select data points from a list of potential candidates to query,
+    in addition to the last sample.
+    """
+    if len(sample_candidates) <= samples_to_retrain + 1:
+        warnings.warn(
+            "# of samples exceeds # of available candidates! Defaulting to all available candidates",
+            stacklevel=2,
+        )
+        samples_to_retrain = len(sample_candidates) - 1
+    query_idx = random.sample(range(1, len(sample_candidates)-1), samples_to_retrain)
+    images_to_query = [sample_candidates[idx] for idx in query_idx]
+    images_to_query.append(sample_candidates[-1])
+    queried_images = compute_query(images_to_query, parent_calc)
+    return queried_images
+    
 
 def max_uncertainty(_, sample_candidates, samples_to_retrain, parent_calc,
                    params=None, method=None):
@@ -135,6 +153,18 @@ def termination_criteria(termination_args, method="iter"):
             return False
         energy_range = np.ptp(np.array(energies[-min_iter:]))
         if energy_range < energy_tol:
+            terminate = True
+            
+    if method == "dft_force":
+        dft_max_forces = termination_args["dft_max_forces"]
+        force_cutoff = termination_args["force_cutoff"]
+        max_iter = termination_args["max_iter"]
+        current_iter = termination_args["current_iter"]
+        if current_iter > max_iter:
+            return True
+        if current_iter <= 1:
+            return False
+        if dft_max_forces[-1] < force_cutoff:
             terminate = True
     
     return terminate
