@@ -4,7 +4,6 @@ import random
 import copy
 import warnings
 import os
-import copy
 import pickle
 import timeit
 # import random
@@ -92,7 +91,7 @@ def max_uncertainty(_, sample_candidates, samples_to_retrain, parent_calc,
 def compute_query(images_to_calculate, parent_calc):
     queried_images = []
     for image in images_to_calculate:
-        image.set_calculator(copy.copy(parent_calc))
+        image.set_calculator(copy.deepcopy(parent_calc))
         sample_energy = image.get_potential_energy(apply_constraint=False)
         sample_forces = image.get_forces(apply_constraint=False)
         image.set_calculator(
@@ -120,7 +119,7 @@ def termination_criteria(termination_args, method="iter"):
         if current_i > total_i:
             terminate = True
     if method == "final":
-        calc = copy.copy(termination_args["calc"])
+        calc = copy.deepcopy(termination_args["calc"])
         final_image = termination_args["images"][-1]
         e_tol = termination_args["energy_tol"]
         f_tol = termination_args["force_tol"]
@@ -142,7 +141,7 @@ def termination_criteria(termination_args, method="iter"):
         terminate = e_terminate and f_terminate
         
     if method == "model_change":
-        energies = copy.copy(termination_args["model_energy_predictions"])
+        energies = copy.deepcopy(termination_args["model_energy_predictions"])
         min_iter = termination_args["min_iter"]
         energy_tol = termination_args["energy_tol"]
         max_iter = termination_args["max_iter"]
@@ -156,7 +155,7 @@ def termination_criteria(termination_args, method="iter"):
             terminate = True
             
     if method == "dft_force":
-        dft_max_forces = termination_args["dft_max_forces"]
+        dft_max_forces = copy.deepcopy(termination_args["dft_max_forces"])
         force_cutoff = termination_args["force_cutoff"]
         max_iter = termination_args["max_iter"]
         current_iter = termination_args["current_iter"]
